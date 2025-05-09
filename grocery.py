@@ -129,4 +129,42 @@ class AdminAction:
 
 
 
-print(AdminAction().collect_data())
+class AdminDBHandler:
+    """Enters data into the database"""
+
+    def __init__(self):
+        self.conn = sqlite3.connect(grocery_db)
+        self.cursor = self.conn.cursor()
+        
+    def insert_data(self, table, data):
+        """Inserts data into the resepctive tables"""
+
+        field_mapping = {
+            'suppliers': ('supplier_name', 'contact'),
+            'categories': ('category_name',),
+            'products': ('product_name', 'quantity', 'price')
+        }
+
+        if table not in field_mapping:
+            logging.warning(f"Invalid table: {table}")
+        fields = ", ".join(field_mapping[table])
+        place_holders = ", ".join(["?" for _ in field_mapping[table]])
+        query = f"INSERT INTO {table} ({fields}) VALUES({place_holders})"
+
+        try:
+            self.cursor.execute(query, tuple(data.values()))
+            self.conn.commit()
+            logging.info(f"Successfully inserted into {table}: {data}")
+        except sqlite3.Error as e:
+            logging.error(f"Database Error: {e}")
+
+
+if __name__ == '__main__':
+    db = GroceryDB()
+
+    admin_action = AdminAction()
+    collected_data = admin_action.collect_data()
+
+    if collected_data:
+        db_handler = AdminDBHandler()
+        db_handler.insert_data(admin_action.act, collected_data)
